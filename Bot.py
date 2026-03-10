@@ -6,19 +6,20 @@ load_dotenv()
 
 class MyBot(discord.Bot):
     def __init__(self):
-        super().__init__(intents=discord.Intents.default())
+        super().__init__()
 
     async def on_ready(self):
-        # Registrar la View para que sea persistente tras reinicios
-        from cogs.gestion import DashboardView
+        # IMPORTANTE: Importar aquí para evitar importaciones circulares
+        from Backend.gestion import DashboardView
         self.add_view(DashboardView(self))
-        print(f"✅ {self.user} en línea y Cogs cargados.")
+        print(f"✅ {self.user} online. View persistente registrada.")
 
 bot = MyBot()
 
-# Cargar automáticamente todos los archivos en la carpeta /cogs
-for filename in os.listdir('./cogs'):
-    if filename.endswith('.py'):
-        bot.load_extension(f'cogs.{filename[:-3]}')
+# Cargar Backend
+if __name__ == "__main__":
+    for filename in os.listdir('./Backend'):
+        if filename.endswith('.py'):
+            bot.load_extension(f'Backend.{filename[:-3]}')
 
 bot.run(os.getenv('TOKEN'))
