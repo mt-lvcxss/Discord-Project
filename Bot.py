@@ -10,16 +10,16 @@ class MyBot(discord.Bot):
 
     async def on_ready(self):
         # IMPORTANTE: Importar aquí para evitar importaciones circulares
-        from Backend.gestion import DashboardView
+        from Cogs.gestion import DashboardView
         self.add_view(DashboardView(self))
         print(f"✅ {self.user} online. View persistente registrada.")
 
 bot = MyBot()
 
-# Cargar Backend
+# Cargar Cogs
 if __name__ == "__main__":
-    for filename in os.listdir('./Backend'):
+    for filename in os.listdir('./Cogs'):
         if filename.endswith('.py'):
-            bot.load_extension(f'Backend.{filename[:-3]}')
+            bot.load_extension(f'Cogs.{filename[:-3]}')
 
 bot.run(os.getenv('TOKEN'))

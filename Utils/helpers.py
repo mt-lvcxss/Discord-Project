@@ -29,4 +29,4 @@ def formato_tiempo(segundos_inicio):
     segundos = int(time.time() - segundos_inicio)
     horas, rem = divmod(segundos, 3600)
     minutos, _ = divmod(rem, 60)
-    return f"{horas}h {minutos}m"
+    return f"{horas}h {minutos}m {segundos}s"

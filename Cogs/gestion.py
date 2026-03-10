@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from Utils.helpers import *
 
 class DashboardView(discord.ui.View):
@@ -59,7 +59,7 @@ class DashboardView(discord.ui.View):
                 for uid, info_u in datos.items():
                     tarea = info_u.get("descripcion", "Sin asignación")
                     tiempo = formato_tiempo(info_u.get("inicio", time.time()))
-                    embed.add_field(name=f"👤 Trabajador", value=f"**Usuario:** <@{uid}>\n⏱️ **Tiempo:** {tiempo}\n📝 **Tarea:** {tarea}", inline=False)
+                    embed.add_field(name=f"👤 Programador", value=f"**Usuario:** <@{uid}>\n⏱️ **Tiempo:** {tiempo}\n📝 **Tarea:** {tarea}", inline=False)
             
             await message.edit(embed=embed, view=self)
         except: pass
@@ -67,11 +67,50 @@ class DashboardView(discord.ui.View):
 class GestionTrabajo(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.actualizar_dashboard_automatico.start()
+
+    @tasks.loop(seconds=9)
+    async def actualizar_dashboard_automatico(self):
+        """Actualiza el dashboard cada 9 segundos"""
+        info = obtener_dashboard()
+        if not info:
+            return
+        
+        datos = cargar_datos()
+        try:
+            channel = self.bot.get_channel(info["channel_id"]) or await self.bot.fetch_channel(info["channel_id"])
+            message = await channel.fetch_message(info["message_id"])
+            
+            embed = discord.Embed(title="📊 Panel de Gestión en Vivo", color=discord.Color.green())
+            if not datos:
+                embed.description = "Nadie está trabajando actualmente. ☕"
+            else:
+                for uid, info_u in datos.items():
+                    tarea = info_u.get("descripcion", "Sin asignación")
+                    tiempo = formato_tiempo(info_u.get("inicio", time.time()))
+                    embed.add_field(
+                        name=f"👤 Programador", 
+                        value=f"**Usuario:** <@{uid}>\n⏱️ **Tiempo:** {tiempo}\n📝 **Tarea:** {tarea}", 
+                        inline=False
+                    )
+            
+            await message.edit(embed=embed, view=DashboardView(self.bot))
+        except Exception as e:
+            pass  # Silencia errores si el mensaje/canal no existe
+
+    @actualizar_dashboard_automatico.before_loop
+    async def before_actualizacion(self):
+        """Espera a que el bot esté listo antes de iniciar la actualización"""
+        await self.bot.wait_until_ready()
+
+    def cog_unload(self):
+        """Cancela la tarea al descargar el cog"""
+        self.actualizar_dashboard_automatico.cancel()
 
     @discord.slash_command(name="estados", description="Activa el panel interactivo")
     async def estados(self, ctx):
         await ctx.respond("Generando panel...", ephemeral=True)
-        mensaje = await ctx.channel.send(content="Cargando...", view=DashboardView(self.bot))
+        mensaje = await ctx.channel.send(content="Panel Establecido.", view=DashboardView(self.bot))
         guardar_dashboard(ctx.channel_id, mensaje.id)
         # Llamar a la actualización
         cog = self.bot.get_cog("GestionTrabajo")
@@ -90,6 +129,10 @@ class GestionTrabajo(commands.Cog):
         await ctx.respond(f"Tarea actualizada: {descripcion}", ephemeral=True)
         view = DashboardView(self.bot)
         await view.actualizar_dashboard_directo()
+
+    @discord.slash_command(name= "say", description = "Comando para escribir con el bot.")
+    async def say(self, ctx, mensaje: str):
+        await ctx.respond(f"{mensaje}\n`Firma: @{ctx.author}`")
 
 def setup(bot):
     bot.add_cog(GestionTrabajo(bot))

@@ -12,7 +12,7 @@ python -m pip install -r requirements.txt
 - Crear un archivo `.env` en la raíz con la línea:
 
 ```
-DISCORD_TOKEN=TU_TOKEN_AQUI
+TOKEN=TU_TOKEN_AQUI
 ```
 
 - Si tu bot necesita leer contenido de mensajes o miembros, habilita los "Privileged Gateway Intents" en el Developer Portal:
